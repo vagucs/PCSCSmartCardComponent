@@ -185,7 +185,7 @@ implementation
 var
   ActReaderState  : cardinal;
   LastReaderState : cardinal;
-  SelectedReader  : PChar;
+  SelectedReader  : String;
   ReaderOpen      : boolean;
   NotifyHandle    : HWND;
 
@@ -257,12 +257,14 @@ function CardWatcherThread(PContext: pointer): integer;
 var
   RetVar   : cardinal;
   RContext : cardinal;
+  AnsiReader: AnsiString;
   RStates  : array[0..1] of SCARD_READERSTATEA;
 begin
   try
   RContext := cardinal(PContext^);
   FillChar(RStates,SizeOf(RStates),#0);
-  RStates[0].szReader     := SelectedReader;
+  AnsiReader := AnsiString(SelectedReader);
+  RStates[0].szReader     := PAnsichar(AnsiReader);
   RStates[0].pvUserData   := nil;
   RStates[0].dwEventState := ActReaderState;
   while ReaderOpen do
@@ -334,11 +336,11 @@ begin
   if RetVar = SCARD_S_SUCCESS then
     begin
     ReaderListSize := 0;
-    RetVar := SCardListReadersA(FContext, nil, nil, ReaderListSize);
+    RetVar := SCardListReadersW(FContext, nil, nil, ReaderListSize);
     if RetVar = SCARD_S_SUCCESS then
       begin
       SetLength(ReaderList, ReaderListSize);
-      SCardListReadersA(FContext, nil, Pointer(ReaderList), ReaderListSize);
+      SCardListReadersW(FContext, nil, Pointer(ReaderList), ReaderListSize);
       FReaderList.Clear;
       SortOutSubstrings(ReaderList,v,[#0]);
       for i := 0 to MAXIMUM_SMARTCARD_READERS do
@@ -405,8 +407,8 @@ function TPCSCConnector.ConnectSelectedReader: boolean;
 var
   RetVar : cardinal;
 begin
-  RetVar := SCardConnectA(FContext,
-                          SelectedReader,
+  RetVar := SCardConnectW(FContext,
+                          PWideChar(SelectedReader),
                           SCARD_SHARE_EXCLUSIVE,
                           SCARD_PROTOCOL_Tx,
                           FCardHandle,

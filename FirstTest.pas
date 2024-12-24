@@ -30,6 +30,7 @@ type
     Memo1: TMemo;
     Label13: TLabel;
     Label14: TLabel;
+    Button1: TButton;
     procedure pcscCardRemoved(Sender: TObject);
     procedure pcscError(Sender: TObject; ErrSource: TErrSource; ErrCode: Cardinal);
     procedure ShowData;
@@ -46,6 +47,7 @@ type
     procedure pcscReaderDisconnect(Sender: TObject);
     procedure pcscReaderListChange(Sender: TObject);
     procedure pcscReaderWaiting(Sender: TObject);
+    procedure Button1Click(Sender: TObject);
   private
     { Private-Deklarationen }
   public
@@ -62,6 +64,73 @@ implementation
 const
 
 HexChars    = '0123456789abcdefABCDEF';
+
+procedure ListSmartCardReaders(Memo: TMemo);
+var
+  hContext: cardinal;
+  Readers: PChar;
+  ReaderList: TStringList;
+  ReaderListSize: integer;
+  Res: LongInt;
+  PtrReader: PChar;
+  qt:LongInt;
+begin
+  Memo.Clear; // Limpa o memo antes de adicionar os leitores
+  Readers := nil;
+  ReaderListSize := 0;
+  ReaderList := TStringList.Create;
+
+  try
+    // Estabelece o contexto para comunicação com o gerenciador de smartcard
+    Res := SCardEstablishContext(SCARD_SCOPE_USER, nil, nil, @hContext);
+    if Res <> SCARD_S_SUCCESS then
+    begin
+      Memo.Lines.Add('Erro ao estabelecer contexto: ' + IntToStr(Res));
+      Exit;
+    end;
+
+    // Obtém o tamanho necessário para armazenar os leitores
+    Res := SCardListReadersW(hContext, nil,nil, ReaderListSize);
+//    RetVar := SCardListReadersA(FContext, nil, nil, ReaderListSize);
+    if (Res <> SCARD_S_SUCCESS) or (ReaderListSize = 0) then
+    begin
+      Memo.Lines.Add('Nenhum leitor encontrado ou erro: ' + IntToStr(Res));
+      Exit;
+    end;
+
+    // Aloca espaço para armazenar a lista de leitores
+    GetMem(Readers, ReaderListSize);
+
+    try
+      // Obtém a lista de leitores
+      Res := SCardListReadersW(hContext, nil, Pointer(Readers), ReaderListSize);
+//             SCardListReadersA(FContext, nil, Pointer(ReaderList), ReaderListSize);
+      if Res <> SCARD_S_SUCCESS then
+      begin
+        Memo.Lines.Add('Erro ao listar leitores: ' + IntToStr(Res));
+        Exit;
+      end;
+
+      // Adiciona os leitores à lista
+      PtrReader := Readers;
+      while PtrReader^ <> #0 do
+      begin
+        ReaderList.Add(PtrReader);
+        Inc(PtrReader, StrLen(PtrReader) + 1);
+      end;
+
+      // Exibe os leitores no TMemo
+      Memo.Lines.AddStrings(ReaderList);
+    finally
+      FreeMem(Readers);
+    end;
+
+  finally
+    // Libera o contexto
+    SCardReleaseContext(hContext);
+    ReaderList.Free;
+  end;
+end;
 
 function Hex2Bin(input: string): string;
 var
@@ -93,13 +162,24 @@ begin
                else result := AnsiLowerCase(hexresult);
 end;
 
+function AnsiToWide(const AnsiStr: AnsiString; CodePage: Cardinal = CP_ACP ): WideString;
+var
+  Len: Integer;
+  AnsiReader: AnsiString;
+begin
+  Len := MultiByteToWideChar(CodePage, 0, PAnsiChar(AnsiStr), -1, nil, 0);
+  SetLength(Result, Len - 1);
+  MultiByteToWideChar(CodePage, 0, PAnsiChar(AnsiStr), -1, PWideChar(Result), Len);
+end;
+
 procedure TForm1.ShowData;
 begin
 label3.caption := IntToHex(pcsc.ReaderState,8);
 label4.caption := pcsc.AttrICCType;
 label5.caption := pcsc.AttrVendorName;
 label6.caption := pcsc.AttrVendorSerial;
-label14.caption := IntToHex(pcsc.AttrProtocol,8);
+label14.caption := IntToHex(pcsc.AttrProtocol,8)+' ATR:'+Bin2HexExt(pcsc.AttrCardATR,true,true);
+
 end;
 
 procedure TForm1.pcscCardRemoved(Sender: TObject);
@@ -110,16 +190,20 @@ end;
 
 procedure TForm1.pcscError(Sender: TObject; ErrSource: TErrSource; ErrCode: Cardinal);
 begin
+if memo1.Lines[memo1.Lines.Count-1]='OnError ' + IntToHex(ErrCode,8) then exit;
 memo1.Lines.Add('OnError ' + IntToHex(ErrCode,8));
 label1.caption := IntToHex(ErrCode,8);
 ShowData;
 end;
 
+
 procedure TForm1.bt_InitClick(Sender: TObject);
+var i:integer;
 begin
 pcsc.Init;
 pcsc.UseReaderNum := 0;
 end;
+
 
 procedure TForm1.bt_OpenClick(Sender: TObject);
 begin
@@ -145,13 +229,22 @@ end;
 
 procedure TForm1.bt_SendClick(Sender: TObject);
 begin
-label2.caption := Bin2HexExt(pcsc.GetResponseFromCard(Hex2Bin('a0f2000016')), true, true);
+   label2.caption := Bin2HexExt(pcsc.GetResponseFromCard(Hex2Bin('a0f2000016')), true, true);
+end;
+
+procedure TForm1.Button1Click(Sender: TObject);
+var i:integer;
+begin
+   memo1.Lines.Add(inttostr(pcsc.ReaderList.Count));
+   for i:=0 to pcsc.ReaderList.Count-1 do begin
+      memo1.Lines.Add(inttostr(i)+':'+pcsc.ReaderList[i]);
+   end;
 end;
 
 procedure TForm1.pcscCardActive(Sender: TObject);
 begin
-memo1.Lines.Add('OnCardActive');
-ShowData;
+   memo1.Lines.Add('OnCardActive');
+   ShowData;
 end;
 
 procedure TForm1.pcscCardInserted(Sender: TObject);
@@ -189,3 +282,4 @@ memo1.Lines.Add('OnReaderWaiting');
 end;
 
 end.
+

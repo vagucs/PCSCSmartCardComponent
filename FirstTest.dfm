@@ -1,16 +1,15 @@
 object Form1: TForm1
   Left = 380
   Top = 178
-  Width = 356
-  Height = 336
   Caption = 'Form1'
+  ClientHeight = 553
+  ClientWidth = 811
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
   Font.Name = 'MS Sans Serif'
   Font.Style = []
-  OldCreateOrder = False
   PixelsPerInch = 96
   TextHeight = 13
   object Label1: TLabel
@@ -140,7 +139,7 @@ object Form1: TForm1
   end
   object bt_Close: TButton
     Left = 5
-    Top = 65
+    Top = 105
     Width = 62
     Height = 19
     Caption = 'Close'
@@ -158,7 +157,7 @@ object Form1: TForm1
   end
   object bt_Send: TButton
     Left = 5
-    Top = 105
+    Top = 65
     Width = 62
     Height = 19
     Caption = 'Send'
@@ -166,11 +165,26 @@ object Form1: TForm1
     OnClick = bt_SendClick
   end
   object Memo1: TMemo
-    Left = 75
-    Top = 130
-    Width = 271
-    Height = 176
+    Left = 8
+    Top = 192
+    Width = 793
+    Height = 353
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -13
+    Font.Name = 'MS Sans Serif'
+    Font.Style = [fsBold]
+    ParentFont = False
     TabOrder = 6
+  end
+  object Button1: TButton
+    Left = 5
+    Top = 155
+    Width = 75
+    Height = 25
+    Caption = 'List'
+    TabOrder = 7
+    OnClick = Button1Click
   end
   object pcsc: TPCSCConnector
     OnCardInserted = pcscCardInserted
@@ -180,7 +194,7 @@ object Form1: TForm1
     OnReaderWaiting = pcscReaderWaiting
     OnReaderListChange = pcscReaderListChange
     OnError = pcscError
-    Left = 315
-    Top = 5
+    Left = 227
+    Top = 13
   end
 end
